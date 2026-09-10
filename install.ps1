@@ -59,32 +59,23 @@ if (!$hasRclone -and (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
 # 3. Create CLI Shims in ~/.local/bin
 Write-Host "Creating CLI shims (mosy.cmd & mosy.ps1)..." -ForegroundColor Yellow
 
-$posixMosy = $installDir.Replace('\', '/').Replace('C:', '/c').Replace('c:', '/c') + '/mosy'
+$posixMosy = ($installDir + "/mosy").Replace('\', '/').Replace('C:', '/c').Replace('c:', '/c')
 
-$cmdLines = @(
-    '@echo off',
-    'if exist "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" (',
-    '    "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" "' + $posixMosy + '" %*',
-    ') else if exist "C:\Program Files\Git\bin\bash.exe" (',
-    '    "C:\Program Files\Git\bin\bash.exe" "' + $posixMosy + '" %*',
-    ') else (',
-    '    bash "' + $posixMosy + '" %*',
-    ')'
-)
-$cmdLines | Set-Content -Path "$localBin\mosy.cmd" -Encoding ASCII
+$gitBash = if (Test-Path "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe") {
+    "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"
+} elseif (Test-Path "C:\Program Files\Git\bin\bash.exe") {
+    "C:\Program Files\Git\bin\bash.exe"
+} else {
+    "bash.exe"
+}
 
-$psLines = @(
-    '$ErrorActionPreference = "Stop"',
-    '$gitBash = if (Test-Path "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe") {',
-    '    "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe"',
-    '} elseif (Test-Path "C:\Program Files\Git\bin\bash.exe") {',
-    '    "C:\Program Files\Git\bin\bash.exe"',
-    '} else {',
-    '    "bash.exe"',
-    '}',
-    '& $gitBash "' + $posixMosy + '" @args'
-)
-$psLines | Set-Content -Path "$localBin\mosy.ps1" -Encoding UTF8
+# Create mosy.cmd
+$cmdContent = "@echo off`r`n`"$gitBash`" `"$posixMosy`" %*"
+Set-Content -Path "$localBin\mosy.cmd" -Value $cmdContent -Encoding ASCII
+
+# Create mosy.ps1
+$psContent = "& '$gitBash' '$posixMosy' `$args"
+Set-Content -Path "$localBin\mosy.ps1" -Value $psContent -Encoding UTF8
 
 # 4. Add ~/.local/bin to Windows User PATH
 $userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
@@ -98,12 +89,10 @@ if ($userPath -notlike "*$localBin*") {
 # 5. Create default config if missing
 $configFile = "$configDir\config"
 if (!(Test-Path $configFile)) {
-    $cfgLines = @(
-        'MOSY_REMOTE_NAME=GoogleDrive',
-        'MOSY_MOUNT_POINT=' + ($env:USERPROFILE + '/GoogleDrive').Replace('\', '/'),
-        'MOSY_CLOUD_DIR=' + ($env:USERPROFILE + '/GoogleDrive/mosy_vault').Replace('\', '/')
-    )
-    $cfgLines | Set-Content -Path $configFile -Encoding UTF8
+    $mountVal = ($env:USERPROFILE + "/GoogleDrive").Replace('\', '/')
+    $cloudVal = ($env:USERPROFILE + "/GoogleDrive/mosy_vault").Replace('\', '/')
+    $cfgText = "MOSY_REMOTE_NAME=GoogleDrive`nMOSY_MOUNT_POINT=$mountVal`nMOSY_CLOUD_DIR=$cloudVal`n"
+    [System.IO.File]::WriteAllText($configFile, $cfgText, [System.Text.Encoding]::ASCII)
 }
 
 Write-Host "============================================================" -ForegroundColor Green

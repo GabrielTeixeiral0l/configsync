@@ -3,7 +3,9 @@ load_settings() {
     
     if [ -f "$config_file" ]; then
         while IFS='=' read -r key val; do
-            [[ "$key" =~ ^[A-Z_]+$ ]] && [ -z "${!key+x}" ] && eval "export $key=$val"
+            key="${key#$'\xef\xbb\xbf'}"
+            val="${val%$'\r'}"
+            [[ "$key" =~ ^[A-Z_]+$ ]] && [ -z "${!key+x}" ] && eval "export $key=\"$val\""
         done < "$config_file"
     fi
 
