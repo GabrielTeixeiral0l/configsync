@@ -12,6 +12,7 @@ common_setup() {
     
     # 3. Default Settings for Tests
     export MOSY_REMOTE_NAME="test-remote"
+    export MOSY_NO_TTY="1"
 
     # 4. Path setup for testing
     export PROJECT_ROOT="$(pwd)"
