@@ -31,6 +31,9 @@ load_settings() {
 
     # Source helpers
     local src_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$src_dir/platform/init.sh" ]; then
+        . "$src_dir/platform/init.sh"
+    fi
     if [ -f "$src_dir/ignore.sh" ]; then
         . "$src_dir/ignore.sh"
     fi
@@ -70,15 +73,68 @@ parse_filter_flags() {
 
 is_mounted() {
     local target="${1:-$MOSY_MOUNT_POINT}"
-    mountpoint -q "$target"
+    if declare -F platform_is_mounted >/dev/null 2>&1; then
+        platform_is_mounted "$target"
+    else
+        mountpoint -q "$target" 2>/dev/null || mount 2>/dev/null | grep -qE "[[:space:]]on[[:space:]]${target%/}/?[[:space:]]"
+    fi
 }
 
 check_mount() {
     if ! is_mounted; then
         echo "Error: Cloud drive is not mounted at $MOSY_MOUNT_POINT"
-        echo "Try: systemctl --user start mosy-mount.service (if installed)"
+        if declare -F platform_service_hint >/dev/null 2>&1; then
+            platform_service_hint
+        else
+            echo "Try: systemctl --user start mosy-mount.service (if installed)"
+        fi
         exit 1
     fi
+}
+
+_is_tag_matching_platform() {
+    local tags="$1"
+    [ -z "$tags" ] && return 0
+    [[ ",$tags," == *",all,"* ]] && return 0
+
+    local has_os_tag=false
+    local os_tag_matched=false
+    local cur_os="${MOSY_OS:-linux}"
+
+    # Check if entry has any platform-specific tag
+    if [[ ",$tags," =~ ,(linux|macos|darwin|windows|wsl|unix), ]]; then
+        has_os_tag=true
+    fi
+
+    # If entry has no platform-specific tags (e.g. user only tagged "work,dev"), it matches universally
+    if [ "$has_os_tag" = false ]; then
+        return 0
+    fi
+
+    case "$cur_os" in
+        darwin)
+            if [[ ",$tags," == *",macos,"* || ",$tags," == *",darwin,"* || ",$tags," == *",unix,"* ]]; then
+                os_tag_matched=true
+            fi
+            ;;
+        windows)
+            if [[ ",$tags," == *",windows,"* ]]; then
+                os_tag_matched=true
+            fi
+            ;;
+        wsl)
+            if [[ ",$tags," == *",wsl,"* || ",$tags," == *",linux,"* || ",$tags," == *",unix,"* ]]; then
+                os_tag_matched=true
+            fi
+            ;;
+        linux|*)
+            if [[ ",$tags," == *",linux,"* || ",$tags," == *",unix,"* ]]; then
+                os_tag_matched=true
+            fi
+            ;;
+    esac
+
+    [ "$os_tag_matched" = true ]
 }
 
 foreach_mapping() {
@@ -97,7 +153,7 @@ foreach_mapping() {
         IFS="|" read -r local_rel cloud_rel tags groups <<< "$entry"
         if [ -z "$local_rel" ]; then continue; fi
 
-        # Filter by tag if MOSY_FILTER_TAG is set
+        # Filter by tag
         if [ -n "${MOSY_FILTER_TAG:-}" ]; then
             local tag_matched=false
             IFS=',' read -ra filter_tags <<< "$MOSY_FILTER_TAG"
@@ -108,6 +164,11 @@ foreach_mapping() {
                 fi
             done
             if [ "$tag_matched" = false ]; then continue; fi
+        else
+            # Default auto-tag resolution for active platform
+            if ! _is_tag_matching_platform "${tags:-}"; then
+                continue
+            fi
         fi
 
         # Filter by group if MOSY_FILTER_GROUP is set
