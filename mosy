@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 source "${SCRIPT_DIR}/src/core.sh"
 
 case "$1" in
-    add|init|pull|list|status|doctor|info|diff|history|rollback|backup|edit|which|clean|tree|remove|uninstall|config|version|update)
+    add|init|pull|list|status|doctor|info|diff|history|rollback|backup|edit|which|clean|tree|remove|uninstall|config|version|update|link)
         source "${SCRIPT_DIR}/src/commands/${1}.sh"
         "cmd_${1}" "${@:2}"
         ;;
@@ -30,6 +30,7 @@ case "$1" in
         echo "Usage: mosy [-p|--profile <name>] <command> [args]"
         echo "Commands:"
         echo "  add <file_or_directory>  Add an item to the cloud vault"
+        echo "  link <local> [target]    Map local path to existing cloud vault item"
         echo "  init                    Configure PC from sync map"
         echo "  pull                    Link missing items from cloud vault"
         echo "  list                    List all managed items"

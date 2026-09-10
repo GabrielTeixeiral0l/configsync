@@ -97,7 +97,11 @@ cmd_status() {
     fi
 
     local service_status
-    service_status=$(systemctl --user is-active mosy-mount.service 2>/dev/null | tr -d '\r\n' || true)
+    if declare -F platform_service_status >/dev/null 2>&1; then
+        service_status=$(platform_service_status 2>/dev/null | tr -d '\r\n')
+    else
+        service_status=$(systemctl --user is-active mosy-mount.service 2>/dev/null | tr -d '\r\n' || true)
+    fi
     [ -z "$service_status" ] && service_status="inactive"
     local is_service_ok=false
     [ "$service_status" = "active" ] && is_service_ok=true

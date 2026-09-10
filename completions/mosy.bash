@@ -3,7 +3,7 @@ _mosy_completions() {
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="add init pull list status doctor info diff history rollback backup snapshot edit which clean tree remove uninstall config version update"
+    opts="add init pull list status doctor info diff history rollback backup snapshot edit which clean tree remove uninstall config version update link"
 
     if [ $COMP_CWORD -eq 1 ]; then
         COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
@@ -13,7 +13,12 @@ _mosy_completions() {
     case "${COMP_WORDS[1]}" in
         add)
             if [[ "$cur" == -* ]]; then
-                COMPREPLY=( $(compgen -W "--tag -t --group -g --force -f --scan-secrets --scan --no-scan --guard --no-guard" -- "$cur") )
+                COMPREPLY=( $(compgen -W "--tag -t --group -g --link --target --to --force -f --scan-secrets --scan --no-scan --guard --no-guard" -- "$cur") )
+            fi
+            ;;
+        link)
+            if [[ "$cur" == -* ]]; then
+                COMPREPLY=( $(compgen -W "--tag -t --group -g --force -f" -- "$cur") )
             fi
             ;;
         status)

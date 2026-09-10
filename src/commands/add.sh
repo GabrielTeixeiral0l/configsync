@@ -3,6 +3,7 @@
 cmd_add() {
     check_mount
     local RAW_TARGET=""
+    local LINK_TARGET=""
     local FORCE=false
     local SCAN_SECRETS_OVERRIDE=""
     local SAFETY_GUARD_OVERRIDE=""
@@ -13,6 +14,10 @@ cmd_add() {
     while [ $# -gt 0 ]; do
         case "$1" in
             --tag|-t|--group|-g)
+                shift 2
+                ;;
+            --link|--target|--to)
+                LINK_TARGET="$2"
                 shift 2
                 ;;
             --force|-f)
@@ -41,6 +46,12 @@ cmd_add() {
                 ;;
         esac
     done
+
+    if [ -n "$LINK_TARGET" ] && [ -n "$RAW_TARGET" ]; then
+        source "${SCRIPT_DIR}/src/commands/link.sh"
+        cmd_link "$RAW_TARGET" "$LINK_TARGET" ${TAGS:+--tag "$TAGS"} ${ITEM_GROUPS:+--group "$ITEM_GROUPS"} ${FORCE:+--force}
+        return $?
+    fi
 
     if [ -z "$RAW_TARGET" ]; then
         echo "Usage: mosy add <file_or_directory> [--tag <tags>] [--group <groups>] [--scan-secrets] [--no-guard] [--force]"

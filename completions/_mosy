@@ -32,6 +32,7 @@ _mosy() {
                 'config:Manage configuration'
                 'version:Show installed version'
                 'update:Update MountSync to latest version'
+                'link:Map local path to existing cloud vault item'
             )
             _describe "commands" subcmds
             ;;
@@ -43,6 +44,9 @@ _mosy() {
                         '-t[Filter tags]:tags:' \
                         '--group[Filter groups]:groups:' \
                         '-g[Filter groups]:groups:' \
+                        '--link[Cloud vault target]:target:' \
+                        '--target[Cloud vault target]:target:' \
+                        '--to[Cloud vault target]:target:' \
                         '--force[Bypass secret confirmation prompts and force syncing]' \
                         '-f[Bypass secret confirmation prompts and force syncing]' \
                         '--scan-secrets[Scan target for secrets before adding]' \
@@ -51,6 +55,17 @@ _mosy() {
                         '--guard[Enable safety guard scanning for DBs and locks]' \
                         '--no-guard[Disable safety guard scanning for DBs and locks]' \
                         '1:file or directory:_files'
+                    ;;
+                link)
+                    _arguments \
+                        '--tag[Filter tags]:tags:' \
+                        '-t[Filter tags]:tags:' \
+                        '--group[Filter groups]:groups:' \
+                        '-g[Filter groups]:groups:' \
+                        '--force[Overwrite or skip confirmation prompts]' \
+                        '-f[Overwrite or skip confirmation prompts]' \
+                        '1:local destination:_files' \
+                        '2:cloud target:'
                     ;;
                 status)
                     _arguments \
