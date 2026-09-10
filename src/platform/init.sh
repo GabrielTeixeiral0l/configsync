@@ -6,6 +6,7 @@ platform_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$platform_dir/detect.sh" ]; then
     . "$platform_dir/detect.sh"
+    detect_platform
 fi
 
 case "${MOSY_OS:-linux}" in
