@@ -112,7 +112,7 @@ prompt_secret_single() {
     local file="$1"
     local reason="$2"
 
-    echo -e "\n⚠️  WARNING: Potential secret leak detected!\n   File:   $file\n   Reason: $reason\n"
+    echo -e "\nWARNING: Potential secret leak detected!\n   File:   $file\n   Reason: $reason\n"
     _read_secret_prompt "Do you want to proceed syncing this file to the cloud? [y/N]: " "Potential secret detected in $file: $reason"
 
     case "$MOSY_PROMPT_REPLY" in
@@ -127,7 +127,7 @@ prompt_secret_directory() {
     shift
     local flagged_items=("$@")
 
-    echo -e "\n⚠️  WARNING: Potential secret leaks detected in $target_dir:"
+    echo -e "\nWARNING: Potential secret leaks detected in $target_dir:"
     for item in "${flagged_items[@]}"; do
         echo "   - ${item%%|*} (${item#*|})"
     done

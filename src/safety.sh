@@ -114,7 +114,7 @@ prompt_safety_single() {
     local category="$2"
     local reason="$3"
 
-    echo -e "\n⚠️  WARNING: High-Churn / Database / Lockfile detected!\n   File:     $file\n   Category: $category\n   Reason:   $reason"
+    echo -e "\nWARNING: High-Churn / Database / Lockfile detected!\n   File:     $file\n   Category: $category\n   Reason:   $reason"
     echo -e "   Notice:   Mounting active databases or lockfiles directly over FUSE can cause"
     echo -e "             deadlocks, high latency, and data corruption.\n"
     _read_safety_prompt "Do you want to proceed syncing this file to the cloud vault? [y/N]: " "High-risk volatile file detected in $file ($reason)."
@@ -131,7 +131,7 @@ prompt_safety_directory() {
     shift
     local flagged_items=("$@")
 
-    echo -e "\n⚠️  WARNING: High-churn, database, or lock files detected in $target_dir:"
+    echo -e "\nWARNING: High-churn, database, or lock files detected in $target_dir:"
     for item in "${flagged_items[@]}"; do
         echo "   - ${item%%|*} (${item#*|})"
     done

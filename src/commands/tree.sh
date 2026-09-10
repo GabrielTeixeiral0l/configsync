@@ -35,10 +35,10 @@ _tree_format_status() {
         esac
     else
         case "$status" in
-            OK) printf '\033[32m[✔ OK]\033[0m' ;;
-            BROKEN) printf '\033[31m[✖ BROKEN]\033[0m' ;;
-            UNLINKED) printf '\033[33m[⚠ UNLINKED]\033[0m' ;;
-            MISSING) printf '\033[90m[? MISSING]\033[0m' ;;
+            OK) printf '\033[32m[OK]\033[0m' ;;
+            BROKEN) printf '\033[31m[BROKEN]\033[0m' ;;
+            UNLINKED) printf '\033[33m[UNLINKED]\033[0m' ;;
+            MISSING) printf '\033[90m[MISSING]\033[0m' ;;
             *) echo "[UNKNOWN]" ;;
         esac
     fi
