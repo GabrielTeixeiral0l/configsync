@@ -166,7 +166,7 @@ cmd_clean() {
         exit 0
     fi
 
-    if [ "$FORCE" != true ] && [ -t 0 ]; then
+    if [ "$FORCE" != true ] && [ -t 0 ] && [ -z "${MOSY_NO_TTY:-}" ]; then
         echo "The following backup snapshot(s) will be deleted:"
         local idx=0
         for f in "${candidate_files[@]}"; do

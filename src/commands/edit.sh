@@ -160,7 +160,7 @@ cmd_edit() {
             if [ ${#matches[@]} -eq 1 ]; then
                 selected_item="${matches[0]}"
             elif [ ${#matches[@]} -gt 1 ]; then
-                if [ -t 0 ]; then
+                if [ -t 0 ] && [ -z "${MOSY_NO_TTY:-}" ]; then
                     echo "Multiple items match '$QUERY':"
                     local idx=1
                     for m in "${matches[@]}"; do
@@ -190,7 +190,7 @@ cmd_edit() {
         fi
     else
         # No query supplied -> present top-level items
-        if [ -t 0 ] && [ ${#managed_roots[@]} -gt 1 ]; then
+        if [ -t 0 ] && [ -z "${MOSY_NO_TTY:-}" ] && [ ${#managed_roots[@]} -gt 1 ]; then
             echo "Select a managed dotfile to edit:"
             local idx=1
             for item in "${managed_roots[@]}"; do
@@ -239,7 +239,7 @@ cmd_edit() {
             exit 1
         fi
 
-        if [ -t 0 ]; then
+        if [ -t 0 ] && [ -z "${MOSY_NO_TTY:-}" ]; then
             echo "~/$selected_item is a directory. Select a text file inside to edit:"
             local f_idx=1
             for f in "${inner_files[@]}"; do

@@ -100,7 +100,7 @@ cmd_rollback() {
         fi
     else
         # Interactive selection if TTY, otherwise pick the latest snapshot
-        if [ -t 0 ] && [ "$FORCE" != true ] && [ ${#snaps[@]} -gt 1 ]; then
+        if [ -t 0 ] && [ -z "${MOSY_NO_TTY:-}" ] && [ "$FORCE" != true ] && [ ${#snaps[@]} -gt 1 ]; then
             echo "Available snapshots for ~/$rel_path:"
             local idx=1
             for snap in "${snaps[@]}"; do

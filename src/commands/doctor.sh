@@ -58,11 +58,16 @@ _doctor_check_deps() {
 
     # 4. Service Manager
     ((TOTAL++))
-    if command -v systemctl >/dev/null 2>&1; then
+    local svc_type
+    svc_type=$(platform_service_type 2>/dev/null || echo "systemd")
+    if [ "$svc_type" = "systemd" ] && command -v systemctl >/dev/null 2>&1; then
         echo -e "${GREEN}[OK]${NC} Service manager: systemctl (systemd)"
         ((OK++))
-    elif command -v launchctl >/dev/null 2>&1; then
+    elif [ "$svc_type" = "launchd" ] || command -v launchctl >/dev/null 2>&1; then
         echo -e "${GREEN}[OK]${NC} Service manager: launchctl (macOS)"
+        ((OK++))
+    elif [ "$svc_type" = "windows-background" ]; then
+        echo -e "${GREEN}[OK]${NC} Service manager: Windows background runner"
         ((OK++))
     else
         echo -e "${YELLOW}[WARN]${NC} Service manager: not found (manual background mounts required)"
@@ -111,19 +116,28 @@ _doctor_check_mount_services() {
         fi
     fi
 
-    # 2. Systemd service check & auto-fix before mountpoint check if fixing
-    if command -v systemctl >/dev/null 2>&1; then
+    # 2. Service check & auto-fix before mountpoint check if fixing
+    local svc_type
+    svc_type=$(platform_service_type 2>/dev/null || echo "systemd")
+    local svc_name="Systemd service (mosy-mount)"
+    if [ "$svc_type" = "launchd" ]; then
+        svc_name="Launchd agent (com.mountsync.rclone)"
+    elif [ "$svc_type" = "windows-background" ]; then
+        svc_name="Windows background runner"
+    fi
+
+    if [ "$svc_type" = "systemd" ] && command -v systemctl >/dev/null 2>&1; then
         ((TOTAL++))
         local svc_status
-        svc_status=$(systemctl --user is-active mosy-mount.service 2>/dev/null | head -n 1)
+        svc_status=$(platform_service_status 2>/dev/null || systemctl --user is-active mosy-mount.service 2>/dev/null | head -n 1)
         [ -z "$svc_status" ] && svc_status="inactive"
         if [ "$svc_status" == "active" ]; then
             echo -e "${GREEN}[OK]${NC} Systemd service (mosy-mount): ACTIVE"
             ((OK++))
         else
             if [ "$FIX_MODE" = true ]; then
-                systemctl --user start mosy-mount.service 2>/dev/null || true
-                svc_status=$(systemctl --user is-active mosy-mount.service 2>/dev/null | head -n 1)
+                platform_service_start 2>/dev/null || systemctl --user start mosy-mount.service 2>/dev/null || true
+                svc_status=$(platform_service_status 2>/dev/null || systemctl --user is-active mosy-mount.service 2>/dev/null | head -n 1)
                 [ -z "$svc_status" ] && svc_status="inactive"
                 if [ "$svc_status" == "active" ]; then
                     echo -e "${GREEN}[FIXED]${NC} Started mosy-mount.service"
@@ -135,6 +149,32 @@ _doctor_check_mount_services() {
                 fi
             else
                 echo -e "${YELLOW}[WARN]${NC} Systemd service (mosy-mount): INACTIVE ($svc_status)"
+                ((WARN++))
+            fi
+        fi
+    elif [ "$svc_type" != "systemd" ] && [ "$svc_type" != "unavailable" ]; then
+        ((TOTAL++))
+        local svc_status
+        svc_status=$(platform_service_status 2>/dev/null || echo "inactive")
+        [ -z "$svc_status" ] && svc_status="inactive"
+        if [ "$svc_status" == "active" ]; then
+            echo -e "${GREEN}[OK]${NC} ${svc_name}: ACTIVE"
+            ((OK++))
+        else
+            if [ "$FIX_MODE" = true ]; then
+                platform_service_start 2>/dev/null || true
+                svc_status=$(platform_service_status 2>/dev/null || echo "inactive")
+                [ -z "$svc_status" ] && svc_status="inactive"
+                if [ "$svc_status" == "active" ]; then
+                    echo -e "${GREEN}[FIXED]${NC} Started ${svc_name}"
+                    ((FIXED++))
+                    ((OK++))
+                else
+                    echo -e "${RED}[ERR]${NC} ${svc_name}: Failed to start ($svc_status)"
+                    ((ERR++))
+                fi
+            else
+                echo -e "${YELLOW}[WARN]${NC} ${svc_name}: INACTIVE ($svc_status)"
                 ((WARN++))
             fi
         fi

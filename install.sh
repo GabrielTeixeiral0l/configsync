@@ -45,6 +45,11 @@ if [ "$IS_UPDATE" = true ]; then
     fi
 fi
 
+# Load platform helpers if available
+if [ -f "src/platform/init.sh" ]; then
+    . "src/platform/init.sh"
+fi
+
 # 1. Dependency Check: rclone
 if ! command -v rclone &> /dev/null; then
     if [ "$IS_UPDATE" = true ]; then
@@ -55,8 +60,21 @@ if ! command -v rclone &> /dev/null; then
     read -p "Install rclone now? (y/n): " install_rclone
     if [[ $install_rclone =~ ^[Yy]$ ]]; then
         echo "Installing rclone..."
-        sudo -v
-        curl https://rclone.org/install.sh | sudo bash
+        if [[ "${MOSY_OS:-linux}" == "darwin" ]] && command -v brew >/dev/null 2>&1; then
+            brew install rclone
+        elif [[ "${MOSY_OS:-linux}" == "windows" ]]; then
+            if command -v winget >/dev/null 2>&1; then
+                winget install Rclone.Rclone
+            elif command -v scoop >/dev/null 2>&1; then
+                scoop install rclone
+            else
+                echo "Please install rclone using winget, scoop, or from https://rclone.org/downloads/"
+                exit 1
+            fi
+        else
+            sudo -v
+            curl https://rclone.org/install.sh | sudo bash
+        fi
     else
         echo "Error: rclone is required for MountSync."
         exit 1
@@ -147,16 +165,23 @@ else
 fi
 
 # 2.5. Mount Awareness Check
-SHOULD_SETUP_SYSTEMD=true
-if mountpoint -q "$MOUNT_POINT" 2>/dev/null || mount | grep -qE "[[:space:]]on[[:space:]]${MOUNT_POINT%/}/?[[:space:]]"; then
+SHOULD_SETUP_SERVICE=true
+is_already_mounted=false
+if declare -F platform_is_mounted >/dev/null 2>&1; then
+    platform_is_mounted "$MOUNT_POINT" && is_already_mounted=true
+elif mountpoint -q "$MOUNT_POINT" 2>/dev/null || mount | grep -qE "[[:space:]]on[[:space:]]${MOUNT_POINT%/}/?[[:space:]]"; then
+    is_already_mounted=true
+fi
+
+if [ "$is_already_mounted" = true ]; then
     echo "Notice: $MOUNT_POINT is already a mountpoint."
     if [ "$IS_UPDATE" = true ]; then
-        SHOULD_SETUP_SYSTEMD=false
+        SHOULD_SETUP_SERVICE=false
         echo "Skipping Systemd service setup (Update Mode)."
     else
         read -p "Do you still want to install the MountSync auto-mount service? (y/N): " setup_service
         if [[ ! $setup_service =~ ^[Yy]$ ]]; then
-            SHOULD_SETUP_SYSTEMD=false
+            SHOULD_SETUP_SERVICE=false
             echo "Skipping Systemd service setup. MountSync will use your existing mount."
         fi
     fi
@@ -173,15 +198,20 @@ MOSY_MOUNT_POINT="$MOUNT_POINT"
 MOSY_CLOUD_DIR="$MOUNT_POINT/mosy_vault"
 EOF
 
-# 4. Persistence with Systemd
-if [ "$SHOULD_SETUP_SYSTEMD" = true ]; then
-    SERVICE_DIR="${HOME}/.config/systemd/user"
-    mkdir -p "$SERVICE_DIR" || { echo "Error: Could not create systemd directory $SERVICE_DIR"; exit 1; }
-    SERVICE_FILE="$SERVICE_DIR/mosy-mount.service"
+# 4. Persistence with Service Manager
+if [ "$SHOULD_SETUP_SERVICE" = true ]; then
+    if declare -F platform_create_service >/dev/null 2>&1; then
+        echo "Setting up background mount service (${MOSY_OS_NAME:-Linux})..."
+        platform_create_service "$REMOTE_NAME" "$MOUNT_POINT"
+        platform_service_enable || echo "Warning: Could not enable mount service."
+        platform_service_start || echo "Warning: Could not start mount service. You may need to start it manually."
+    else
+        SERVICE_DIR="${HOME}/.config/systemd/user"
+        mkdir -p "$SERVICE_DIR" || { echo "Error: Could not create systemd directory $SERVICE_DIR"; exit 1; }
+        SERVICE_FILE="$SERVICE_DIR/mosy-mount.service"
+        RCLONE_PATH=$(command -v rclone)
 
-    RCLONE_PATH=$(command -v rclone)
-
-    cat <<EOF > "$SERVICE_FILE" || { echo "Error: Could not write to $SERVICE_FILE"; exit 1; }
+        cat <<EOF > "$SERVICE_FILE" || { echo "Error: Could not write to $SERVICE_FILE"; exit 1; }
 [Unit]
 Description=Rclone Mount for MountSync
 After=network-online.target
@@ -196,16 +226,21 @@ Restart=on-failure
 WantedBy=default.target
 EOF
 
-    echo "Setting up Systemd service..."
-    systemctl --user daemon-reload || true
-    systemctl --user enable mosy-mount.service || echo "Warning: Could not enable systemd service (might be in a container/non-systemd system)."
-    systemctl --user start mosy-mount.service || echo "Warning: Could not start systemd service. You may need to start it manually."
+        echo "Setting up Systemd service..."
+        systemctl --user daemon-reload || true
+        systemctl --user enable mosy-mount.service || echo "Warning: Could not enable systemd service (might be in a container/non-systemd system)."
+        systemctl --user start mosy-mount.service || echo "Warning: Could not start systemd service. You may need to start it manually."
+    fi
 fi
 
-# 5. Integration in PATH
+# 5. Integration in PATH & CLI Shims
 BIN_DIR="${HOME}/.local/bin"
 mkdir -p "$BIN_DIR" || { echo "Error: Could not create $BIN_DIR"; exit 1; }
 ln -sf "$(pwd)/mosy" "$BIN_DIR/mosy"
+
+if declare -F platform_create_shims >/dev/null 2>&1; then
+    platform_create_shims "$BIN_DIR" "$(pwd)/mosy"
+fi
 
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
     echo "Warning: $BIN_DIR is not in your PATH."

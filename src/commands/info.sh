@@ -38,7 +38,10 @@ cmd_info() {
 
     # Service status
     local service_status="not found"
-    if command -v systemctl >/dev/null 2>&1; then
+    if declare -F platform_service_status >/dev/null 2>&1; then
+        service_status=$(platform_service_status | head -n 1)
+        [ -z "$service_status" ] && service_status="inactive"
+    elif command -v systemctl >/dev/null 2>&1; then
         service_status=$(systemctl --user is-active mosy-mount.service 2>/dev/null | head -n 1)
         [ -z "$service_status" ] && service_status="inactive"
     elif command -v launchctl >/dev/null 2>&1; then

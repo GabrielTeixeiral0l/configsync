@@ -26,13 +26,21 @@ cmd_uninstall() {
         read -p "Do you want to unmount the cloud drive ($MOSY_MOUNT_POINT) now? (y/N) " unmount < "$tty_input"
         if [[ "$unmount" =~ ^([yY][eE][sS]|[yY])$ ]]; then
             echo "Stopping service and unmounting..."
-            systemctl --user stop mosy-mount.service || true
+            if declare -F platform_service_stop >/dev/null 2>&1; then
+                platform_service_stop
+            elif command -v systemctl >/dev/null 2>&1; then
+                systemctl --user stop mosy-mount.service || true
+            fi
         fi
 
         echo "Disabling service and removing files..."
-        systemctl --user disable mosy-mount.service || true
-        rm -f "$HOME/.config/systemd/user/mosy-mount.service"
-        rm -f "$HOME/.local/bin/mosy"
+        if declare -F platform_uninstall_service >/dev/null 2>&1; then
+            platform_uninstall_service
+        else
+            systemctl --user disable mosy-mount.service 2>/dev/null || true
+            rm -f "$HOME/.config/systemd/user/mosy-mount.service"
+        fi
+        rm -f "$HOME/.local/bin/mosy" "$HOME/.local/bin/mosy.cmd" "$HOME/.local/bin/mosy.ps1"
         rm -rf "$HOME/.config/mosy/completions"
 
         # Clean completions from profiles
