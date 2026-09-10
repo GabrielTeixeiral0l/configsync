@@ -53,12 +53,31 @@ MOSY_SAFETY_GUARD="true"
 
 ---
 
-## Custom Secret Patterns (`~/.config/mosy/secrets.conf`)
-
-You can extend secret scanning patterns by creating `~/.config/mosy/secrets.conf`.
-- Lines starting with `file:` define sensitive filename patterns (e.g. `file:custom_secret.conf`, `file:*.pfx`).
 - Other non-empty lines define regular expressions matched against file contents (e.g. `MY_COMPANY_API_KEY_[0-9]+`).
 - Lines starting with `#` are treated as comments.
+
+---
+
+## Sync Map Manifest (`sync-map.conf`)
+
+The sync map manifest is stored in the Cloud Vault (`$MOSY_CLOUD_DIR/sync-map.conf`) and uses a pipe-delimited (`|`) 4-column format:
+
+```text
+LOCAL_REL_PATH | CLOUD_REL_PATH | TAGS | GROUPS
+```
+
+* **`LOCAL_REL_PATH`**: Path relative to the local user's `$HOME` (e.g., `.config/Code/User/settings.json`, `Library/Application Support/Code/User/settings.json`, or `AppData/Roaming/Code/User/settings.json`).
+* **`CLOUD_REL_PATH`**: Path relative to the Cloud Vault directory (`$MOSY_CLOUD_DIR`).
+* **`TAGS`**: Comma-separated tags (e.g., `linux`, `macos`, `windows`, `unix`, `all`, `work`, `laptop`).
+* **`GROUPS`**: Comma-separated groups (e.g., `editors`, `shell`, `vcs`).
+
+### Platform Tag Resolution Rules
+
+When running `mosy init`, `mosy pull`, or `mosy status` without an explicit `--tag` filter:
+* **Untagged entries** (empty tag) are considered universal and match on **all platforms**.
+* **Entries with tag `all`** match on **all platforms**.
+* **Entries with tag `unix`** match on **Linux**, **macOS**, and **WSL**.
+* **Platform-specific tags** (`linux`, `macos`/`darwin`, `windows`, `wsl`) match **only** when running on that specific operating system. Foreign OS paths are cleanly skipped.
 
 ---
 

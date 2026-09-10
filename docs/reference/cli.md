@@ -36,6 +36,7 @@ Global flags must be specified before the subcommand.
 | Command | Syntax | Description |
 | :--- | :--- | :--- |
 | [`add`](#1-add) | `mosy add <path> [options]` | Add a file or directory to cloud vault with granular symlinking and secret scanning |
+| [`link`](#1b-link) | `mosy link <local> [target] [options]` | Map a local divergent OS path to an existing cloud vault item |
 | [`init`](#2-init) | `mosy init [options]` | Recreate all managed symlinks on local machine from `sync-map.conf` |
 | [`pull`](#3-pull) | `mosy pull [options]` | Link missing cloud items without overwriting existing local files |
 | [`list`](#4-list) | `mosy list [options]` | List all managed dotfiles with associated tags and groups |
@@ -70,6 +71,7 @@ Global flags must be specified before the subcommand.
 * **Options/Flags**:
   * `-t, --tag TAGS`: Comma-separated list of tags to associate with the item (e.g., `work,dev`).
   * `-g, --group GROUPS`: Comma-separated list of groups to associate with the item (e.g., `dotfiles,configs`).
+  * `--link, --target, --to TARGET`: Delegate to `mosy link` to map this local file to an existing cloud vault target.
   * `--scan-secrets`, `--scan`: Enable pre-vaulting regex inspection for unencrypted credentials, tokens, and private keys.
   * `--no-scan`: Bypass secret scanning even if `MOSY_SCAN_SECRETS=true` is enabled in configuration.
   * `--guard`: Explicitly enable the high-churn, database & lockfile safety guard inspection.
@@ -87,9 +89,34 @@ Global flags must be specified before the subcommand.
 
 ---
 
+### 1b. `link`
+
+* **Purpose**: Maps a local divergent path (common in multi-OS setups such as macOS `~/Library/...` or Windows `AppData/Roaming/...`) to an existing file or directory in the cloud vault. It automatically determines platform tags, inherits groups from the vault target, backs up pre-existing local files, creates the symlink, and appends the entry to `sync-map.conf`.
+* **Syntax**:
+  ```text
+  mosy [-p PROFILE] link LOCAL_PATH [CLOUD_TARGET] [-t|--tag TAGS] [-g|--group GROUPS] [-f|--force]
+  ```
+* **Arguments**:
+  * `LOCAL_PATH`: Local destination path inside `$HOME` (e.g., `~/AppData/Roaming/Code/User/settings.json` or `~/Library/Application Support/Code/User/settings.json`).
+  * `CLOUD_TARGET` *(Optional)*: Relative path of the existing target within the cloud vault (e.g., `.config/Code/User/settings.json`). If omitted, MountSync automatically searches the vault for items matching the file basename.
+* **Options/Flags**:
+  * `-t, --tag TAGS`: Comma-separated list of tags. Defaults to the detected host platform (`windows`, `macos`, `linux`, `wsl`).
+  * `-g, --group GROUPS`: Comma-separated list of groups. Automatically inherits groups from the vault target if already registered in `sync-map.conf`.
+  * `-f, --force`: Automatically select first match if multiple candidates are found and skip interactive prompts.
+* **Output Example**:
+  ```text
+  $ mosy link ~/AppData/Roaming/Code/User/settings.json .config/Code/User/settings.json
+  Success! Linked ~/AppData/Roaming/Code/User/settings.json -> vault/.config/Code/User/settings.json (tags: windows).
+  ```
+* **Exit Codes**:
+  * `0`: Success.
+  * `1`: Failure (cloud drive not mounted, cloud target missing, or local path outside `$HOME`).
+
+---
+
 ### 2. `init`
 
-* **Purpose**: Configures the local machine by reading `sync-map.conf` from the cloud vault and establishing symbolic links for all managed items.
+* **Purpose**: Configures the local machine by reading `sync-map.conf` from the cloud vault and establishing symbolic links for all managed items. By default, it automatically filters entries for the host platform (`linux`, `macos`, `windows`, `wsl`), universal tags (`all`, `unix`), and untagged items, while ignoring foreign OS paths.
 * **Syntax**:
   ```text
   mosy [-p PROFILE] init [-t|--tag TAGS] [-g|--group GROUPS]

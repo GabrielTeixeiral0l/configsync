@@ -156,11 +156,36 @@ The `mosy` script acts as the entry parser:
 ### 4.2 Core Architecture (`src/core.sh`, `src/secrets.sh`, `src/ignore.sh`)
 
 - **`load_settings`**: Loads configuration files while respecting pre-set environment overrides. Resolves active profiles and sync map file locations (`sync-map.conf`).
-- **`check_mount`**: Ensures the cloud mount point is currently active via `mountpoint -q`.
-- **`foreach_mapping`**: Iterator function that reads `sync-map.conf`, evaluates tags/groups filters (`MOSY_FILTER_TAG`, `MOSY_FILTER_GROUP`), and passes matching entries to callback functions.
+- **`check_mount`**: Ensures the cloud mount point is currently active via `platform_is_mounted`.
+- **`foreach_mapping`**: Iterator function that reads `sync-map.conf`, evaluates tags/groups filters (`MOSY_FILTER_TAG`, `MOSY_FILTER_GROUP`), performs automated platform tag matching, and passes matching entries to callback functions.
 - **`mosy_backup`**: Implements safety backups for local path collisions.
 - **`ignore.sh`**: Handles ignore pattern evaluation and hierarchical traversal up to `$HOME`.
 - **`secrets.sh`**: Inspects files for sensitive credentials, keys, and tokens prior to cloud staging.
+
+### 4.3 Platform Adapter Architecture (`src/platform/`)
+
+MountSync decouples operating system differences (service managers, mount checks, symlink behaviors, CLI wrappers) into dedicated platform modules loaded dynamically by `src/platform/init.sh`:
+
+```text
+                     ┌───────────────────────────────┐
+                     │          install.sh           │
+                     │          src/core.sh          │
+                     └───────────────┬───────────────┘
+                                     │
+                        [src/platform/detect.sh]
+                                     │
+           ┌─────────────────────────┼─────────────────────────┐
+           ▼                         ▼                         ▼
+ 🐧 src/platform/linux.sh   🍏 src/platform/darwin.sh  🪟 src/platform/windows.sh
+ • Systemd user service     • Launchd .plist agent    • NTFS symlinks
+ • POSIX mount validation   • df/mount validation     • mosy.cmd & mosy.ps1
+ • ~/.config/ paths         • LaunchAgents paths      • Background runner
+```
+
+1. **`detect.sh`**: Detects whether the host environment is `linux`, `darwin` (macOS), `windows` (MSYS/Git Bash), or `wsl`.
+2. **`linux.sh`**: Implements `systemd` user service templates (`mosy-mount.service`) and POSIX mount check routines.
+3. **`darwin.sh`**: Generates and manages macOS LaunchAgent plists (`~/Library/LaunchAgents/com.mountsync.rclone.plist`) via `launchctl`.
+4. **`windows.sh`**: Configures native NTFS symlinks (`MSYS=winsymlinks:nativestrict`), Windows background runners (`mount-runner.cmd` / `.vbs`), and CLI shims (`mosy.cmd`, `mosy.ps1`) in `~/.local/bin` for native Command Prompt and PowerShell usage.
 
 ---
 

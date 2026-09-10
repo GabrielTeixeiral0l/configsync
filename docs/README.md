@@ -36,6 +36,7 @@ How-to guides provide step-by-step recipes to solve real-world problems and work
 * [Secret Leak Prevention Guide](how-to/secrets-prevention.md): Scan for unencrypted keys, tokens, and credentials before cloud vaulting with custom patterns in `secrets.conf`.
 * [Snapshots & Recovery Guide](how-to/snapshots-and-recovery.md): Create on-demand safety snapshots, inspect history, edit configs with safety backups, rollback revisions, and purge obsolete backups.
 * [Multi-Machine Synchronization Guide](how-to/multi-machine-sync.md): Replicate configurations across laptops, workstations, and remote servers using `mosy init` and `mosy pull`.
+* [Cross-Platform Synchronization Guide](how-to/cross-platform-sync.md): Synchronize divergent dotfile paths across Linux, macOS, and Windows with `mosy link`.
 
 ---
 

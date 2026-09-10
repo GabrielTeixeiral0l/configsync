@@ -163,15 +163,19 @@ MountSync utilizes `rclone` with VFS caching (`--vfs-cache-mode writes` or `full
 
 - **Offline Reads/Writes**: When your laptop is offline, you can continue modifying your dotfiles normally. Changes are recorded in local VFS cache (`~/.cache/rclone`).
 - **Reconnection Sync**: When network connectivity is restored, `rclone` automatically uploads pending writes to your cloud provider.
-- **Service Verification**: Verify service and mount health at any time:
-  ```bash
-  mosy doctor
-  ```
+---
+
+## Cross-Platform Sync (Linux, macOS, and Windows)
+
+If you are synchronizing configurations across different operating systems with divergent file paths (such as VS Code settings in `~/.config/Code/...` on Linux, `~/Library/Application Support/Code/...` on macOS, and `%APPDATA%/Code/...` on Windows), use the dedicated [`mosy link`](cross-platform-sync.md) command.
+
+For a complete step-by-step recipe, consult the [Cross-Platform Synchronization Guide](cross-platform-sync.md).
 
 ---
 
 ## Related Documentation
 
+- [Cross-Platform Synchronization Guide](cross-platform-sync.md): Recipes for Linux, macOS, and Windows.
 - [Quickstart Tutorial](../tutorials/quickstart.md): Step-by-step introduction.
 - [Tags and Groups Guide](tags-and-groups.md): Detailed filtering logic.
 - [Profiles Guide](profiles.md): Multi-profile environment management.

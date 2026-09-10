@@ -19,38 +19,24 @@ In this tutorial, you will:
 
 Before installing MountSync, ensure your Linux system has the necessary dependencies installed. MountSync relies on `rclone` to communicate with cloud storage providers and `fuse3` to mount cloud drives locally.
 
-### Prerequisites
+### Prerequisites & Installing rclone
 
-Check if `rclone` and `fuse3` are installed on your system by running:
+MountSync relies on `rclone` to communicate with cloud storage providers (Google Drive, OneDrive, Dropbox, S3, etc.).
 
-```bash
-rclone version
-fusermount3 --version
-```
+* **Linux (Ubuntu/Debian):**
+  ```bash
+  sudo apt update && sudo apt install -y rclone fuse3
+  ```
+* **macOS:**
+  ```bash
+  brew install rclone
+  ```
+* **Windows (Git Bash):**
+  ```powershell
+  winget install Rclone.Rclone
+  ```
 
-If either command is missing, install them using your system package manager.
-
-For Ubuntu/Debian:
-
-```bash
-sudo apt update
-sudo apt install rclone fuse3
-```
-
-For Arch Linux:
-
-```bash
-sudo pacman -S rclone fuse3
-```
-
-For Fedora:
-
-```bash
-sudo dnf install rclone fuse3
-```
-
-Ensure `rclone` is configured with at least one remote cloud storage (for example, Google Drive, Dropbox, or OneDrive). You can test or set up your remotes using:
-
+Configure your cloud remote (if you haven't already):
 ```bash
 rclone config
 ```
@@ -62,6 +48,11 @@ Install MountSync by running the official installation script:
 ```bash
 curl -sL https://raw.githubusercontent.com/GabrielTeixeiral0l/MountSync/main/install.sh | bash
 ```
+
+The installer automatically adapts to your operating system:
+* **Linux:** Generates a `systemd` user service (`mosy-mount.service`).
+* **macOS:** Generates a `launchd` agent (`~/Library/LaunchAgents/com.mountsync.rclone.plist`).
+* **Windows:** Configures background runner scripts and generates `mosy.cmd` and `mosy.ps1` CLI shims in `~/.local/bin` so you can use `mosy` directly from Command Prompt or PowerShell!
 
 The installation script performs the following tasks automatically:
 - Checks for system dependencies (`rclone`, `fuse3`).
